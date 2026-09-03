@@ -25,49 +25,48 @@ export default function Home() {
   async function loadStudents() {
     const response = await fetch("/api/students");
     const data = await response.json();
-
     setStudents(data);
   }
 
   async function saveStudent(e: React.FormEvent) {
-    e.preventDefault();
+  e.preventDefault();
 
-    if (editingId === null) {
-      await fetch("/api/students", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          name,
-          email,
-          age,
-          course,
-        }),
-      });
-    } else {
-      const currentStudent = students.find(
-        (student) => student.id === editingId
-      );
+  try {
+    const url =
+      editingId === null
+        ? "/api/students"
+        : `/api/students/${editingId}`;
 
-      await fetch(`/api/students/${editingId}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          name,
-          email,
-          age,
-          course,
-          active: currentStudent?.active ?? true,
-        }),
-      });
+    const method = editingId === null ? "POST" : "PUT";
+
+    const response = await fetch(url, {
+      method,
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        name,
+        email,
+        age,
+        course,
+        active:
+          editingId === null
+            ? true
+            : students.find((s) => s.id === editingId)?.active,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to save student");
     }
 
     clearForm();
-    loadStudents();
+    await loadStudents();
+  } catch (error) {
+    console.error(error);
+    alert("Something went wrong.");
   }
+}
 
   function editStudent(student: Student) {
     setEditingId(student.id);
@@ -75,6 +74,14 @@ export default function Home() {
     setEmail(student.email);
     setAge(String(student.age));
     setCourse(student.course);
+  }
+
+  async function deleteStudent(id: number) {
+    await fetch(`/api/students/${id}`, {
+      method: "DELETE",
+    });
+
+    loadStudents();
   }
 
   async function toggleActive(student: Student) {
@@ -95,28 +102,12 @@ export default function Home() {
     loadStudents();
   }
 
-  async function deleteStudent(id: number) {
-    const confirmed = window.confirm(
-      "Are you sure you want to delete this student?"
-    );
-
-    if (!confirmed) {
-      return;
-    }
-
-    await fetch(`/api/students/${id}`, {
-      method: "DELETE",
-    });
-
-    loadStudents();
-  }
-
   function clearForm() {
+    setEditingId(null);
     setName("");
     setEmail("");
     setAge("");
     setCourse("");
-    setEditingId(null);
   }
 
   useEffect(() => {
@@ -126,22 +117,26 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-gray-100 text-gray-900">
       <div className="mx-auto max-w-4xl px-6 py-10">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold">Student Management</h1>
 
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold">
+            Student Management
+          </h1>
           <p className="mt-2 text-gray-600">
-            Add and manage student records.
+            Manage student records using Next.js, Prisma and Neon.
           </p>
         </div>
 
+        {/* FORM */}
         <div className="mb-8 rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
           <h2 className="mb-5 text-xl font-semibold">
             {editingId === null ? "Add New Student" : "Edit Student"}
           </h2>
 
           <form onSubmit={saveStudent} className="space-y-4">
+
             <input
-              className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+              className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-blue-500"
               placeholder="Full name"
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -149,7 +144,7 @@ export default function Home() {
             />
 
             <input
-              className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+              className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-blue-500"
               placeholder="Email address"
               type="email"
               value={email}
@@ -158,7 +153,7 @@ export default function Home() {
             />
 
             <input
-              className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+              className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-blue-500"
               placeholder="Age"
               type="number"
               value={age}
@@ -167,7 +162,7 @@ export default function Home() {
             />
 
             <input
-              className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+              className="w-full rounded-lg border border-gray-300 px-4 py-3 outline-none focus:border-blue-500"
               placeholder="Course"
               value={course}
               onChange={(e) => setCourse(e.target.value)}
@@ -186,7 +181,7 @@ export default function Home() {
                 <button
                   type="button"
                   onClick={clearForm}
-                  className="rounded-lg border border-gray-300 px-5 py-3 font-semibold text-gray-700 hover:bg-gray-50"
+                  className="rounded-lg border border-gray-300 px-5 py-3 font-semibold"
                 >
                   Cancel
                 </button>
@@ -195,8 +190,11 @@ export default function Home() {
           </form>
         </div>
 
+        {/* STUDENTS */}
         <div>
-          <h2 className="mb-4 text-xl font-semibold">Students</h2>
+          <h2 className="mb-4 text-xl font-semibold">
+            Students
+          </h2>
 
           {students.length === 0 ? (
             <div className="rounded-xl border border-gray-200 bg-white p-6 text-center text-gray-500">
@@ -209,7 +207,8 @@ export default function Home() {
                   key={student.id}
                   className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm"
                 >
-                  <div className="flex items-start justify-between gap-4">
+                  <div className="flex items-start justify-between">
+
                     <div>
                       <h3 className="text-lg font-semibold">
                         {student.name}
@@ -224,7 +223,8 @@ export default function Home() {
                       </p>
                     </div>
 
-                    <span
+                    <button
+                      onClick={() => toggleActive(student)}
                       className={`rounded-full px-3 py-1 text-sm font-medium ${
                         student.active
                           ? "bg-green-100 text-green-700"
@@ -232,22 +232,15 @@ export default function Home() {
                       }`}
                     >
                       {student.active ? "Active" : "Inactive"}
-                    </span>
+                    </button>
                   </div>
 
                   <div className="mt-5 flex gap-3 border-t border-gray-100 pt-4">
                     <button
                       onClick={() => editStudent(student)}
-                      className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                      className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium hover:bg-gray-50"
                     >
                       Edit
-                    </button>
-
-                    <button
-                      onClick={() => toggleActive(student)}
-                      className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-                    >
-                      {student.active ? "Deactivate" : "Activate"}
                     </button>
 
                     <button
@@ -262,6 +255,7 @@ export default function Home() {
             </div>
           )}
         </div>
+
       </div>
     </main>
   );
