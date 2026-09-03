@@ -4,6 +4,7 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
 
+// Reuse Prisma Client during development hot reloads
 export const prisma =
   globalForPrisma.prisma ??
   new PrismaClient();
