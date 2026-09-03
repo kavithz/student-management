@@ -29,8 +29,9 @@ export default function Home() {
   }
 
   async function saveStudent(e: React.FormEvent) {
-    e.preventDefault();
+  e.preventDefault();
 
+  try {
     const url =
       editingId === null
         ? "/api/students"
@@ -38,7 +39,7 @@ export default function Home() {
 
     const method = editingId === null ? "POST" : "PUT";
 
-    await fetch(url, {
+    const response = await fetch(url, {
       method,
       headers: {
         "Content-Type": "application/json",
@@ -55,9 +56,17 @@ export default function Home() {
       }),
     });
 
+    if (!response.ok) {
+      throw new Error("Failed to save student");
+    }
+
     clearForm();
-    loadStudents();
+    await loadStudents();
+  } catch (error) {
+    console.error(error);
+    alert("Something went wrong.");
   }
+}
 
   function editStudent(student: Student) {
     setEditingId(student.id);
