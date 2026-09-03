@@ -175,7 +175,7 @@ export default function Home() {
             Student Management
           </h1>
           <p className="mt-2 text-gray-600">
-            Manage student records using Next.js, Prisma and Neon.
+            Manage student records using Next.js / Prisma /Neon.
           </p>
         </div>
 
