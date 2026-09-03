@@ -23,50 +23,68 @@ export default function Home() {
   const [editingId, setEditingId] = useState<number | null>(null);
 
   async function loadStudents() {
-    const response = await fetch("/api/students");
-    const data = await response.json();
-    setStudents(data);
+    try {
+      const response = await fetch("/api/students");
+
+      if (!response.ok) {
+        throw new Error("Failed to load students");
+      }
+
+      const data = await response.json();
+      setStudents(data);
+    } catch (error) {
+      console.error("Load students error:", error);
+      alert("Failed to load students.");
+    }
   }
 
   async function saveStudent(e: React.FormEvent) {
-  e.preventDefault();
+    e.preventDefault();
 
-  try {
-    const url =
-      editingId === null
-        ? "/api/students"
-        : `/api/students/${editingId}`;
+    try {
+      const url =
+        editingId === null
+          ? "/api/students"
+          : `/api/students/${editingId}`;
 
-    const method = editingId === null ? "POST" : "PUT";
+      const method = editingId === null ? "POST" : "PUT";
 
-    const response = await fetch(url, {
-      method,
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        name,
-        email,
-        age,
-        course,
-        active:
-          editingId === null
-            ? true
-            : students.find((s) => s.id === editingId)?.active,
-      }),
-    });
+      const currentStudent = students.find(
+        (student) => student.id === editingId
+      );
 
-    if (!response.ok) {
-      throw new Error("Failed to save student");
+      const response = await fetch(url, {
+        method,
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name,
+          email,
+          age,
+          course,
+          active:
+            editingId === null
+              ? true
+              : currentStudent?.active ?? true,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+
+        throw new Error(
+          errorData?.error || "Failed to save student"
+        );
+      }
+
+      clearForm();
+      await loadStudents();
+    } catch (error) {
+      console.error("Save student error:", error);
+      alert("Something went wrong while saving the student.");
     }
-
-    clearForm();
-    await loadStudents();
-  } catch (error) {
-    console.error(error);
-    alert("Something went wrong.");
   }
-}
 
   function editStudent(student: Student) {
     setEditingId(student.id);
@@ -77,29 +95,63 @@ export default function Home() {
   }
 
   async function deleteStudent(id: number) {
-    await fetch(`/api/students/${id}`, {
-      method: "DELETE",
-    });
+    const confirmed = window.confirm(
+      "Are you sure you want to delete this student?"
+    );
 
-    loadStudents();
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/students/${id}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+
+        throw new Error(
+          errorData?.error || "Failed to delete student"
+        );
+      }
+
+      await loadStudents();
+    } catch (error) {
+      console.error("Delete student error:", error);
+      alert("Something went wrong while deleting the student.");
+    }
   }
 
   async function toggleActive(student: Student) {
-    await fetch(`/api/students/${student.id}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        name: student.name,
-        email: student.email,
-        age: student.age,
-        course: student.course,
-        active: !student.active,
-      }),
-    });
+    try {
+      const response = await fetch(`/api/students/${student.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: student.name,
+          email: student.email,
+          age: student.age,
+          course: student.course,
+          active: !student.active,
+        }),
+      });
 
-    loadStudents();
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+
+        throw new Error(
+          errorData?.error || "Failed to update student status"
+        );
+      }
+
+      await loadStudents();
+    } catch (error) {
+      console.error("Toggle active error:", error);
+      alert("Something went wrong while changing student status.");
+    }
   }
 
   function clearForm() {
